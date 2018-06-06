@@ -6,6 +6,6 @@ applications:
   host: allocations-pal-vv
   path: Applications/AllocationsServer/bin/Release/netcoreapp2.0/publish
   env:
-    REGISTRATION_SERVER_ENDPOINT: http://allocations-pal-vv.apps.pikes.pal.pivotal.io
+    REGISTRATION_SERVER_ENDPOINT: https://registration-pal-vv.apps.pikes.pal.pivotal.io
   services:
   - tracker-allocations-database

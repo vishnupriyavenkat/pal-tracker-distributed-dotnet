@@ -6,6 +6,6 @@ applications:
   host: timesheets-pal-vv
   path: Applications/TimesheetsServer/bin/Release/netcoreapp2.0/publish
   env:
-    REGISTRATION_SERVER_ENDPOINT: http://timesheet-pal-vv.apps.pikes.pal.pivotal.io
+    REGISTRATION_SERVER_ENDPOINT: https://registration-pal-vv.apps.pikes.pal.pivotal.io
   services:
   - tracker-timesheets-database
