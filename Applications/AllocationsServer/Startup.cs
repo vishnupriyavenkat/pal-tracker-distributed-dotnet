@@ -10,6 +10,11 @@ using Steeltoe.CloudFoundry.Connector.MySql.EFCore;
 using Pivotal.Discovery.Client;
 using Steeltoe.Common.Discovery;
 using Steeltoe.CircuitBreaker.Hystrix;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Steeltoe.Security.Authentication.CloudFoundry;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using AuthDisabler;
 
 namespace AllocationsServer
 {
@@ -30,7 +35,7 @@ namespace AllocationsServer
 
             services.AddDbContext<AllocationContext>(options => options.UseMySql(Configuration));
             services.AddScoped<IAllocationDataGateway, AllocationDataGateway>();
-  
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();  
             services.AddSingleton<IProjectClient>(sp =>
             {
                 var handler = new DiscoveryHttpClientHandler(sp.GetService<IDiscoveryClient>());
@@ -39,11 +44,20 @@ namespace AllocationsServer
                     BaseAddress = new Uri(Configuration.GetValue<string>("REGISTRATION_SERVER_ENDPOINT"))
                 };
 
-                 var logger = sp.GetService<ILogger<ProjectClient>>();
-                 return new ProjectClient(httpClient, logger);
+                var logger = sp.GetService<ILogger<ProjectClient>>();
+                var contextAccessor = sp.GetService<IHttpContextAccessor>();
+                 
+                return new ProjectClient(httpClient, logger, () => contextAccessor.HttpContext.GetTokenAsync("access_token"));
             });
-               services.AddDiscoveryClient(Configuration);
-             services.AddHystrixMetricsStream(Configuration);         
+            services.AddDiscoveryClient(Configuration);
+            services.AddHystrixMetricsStream(Configuration);         
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddCloudFoundryJwtBearer(Configuration);
+            services.AddAuthorization(options => options.AddPolicy("pal-tracker", policy => policy.RequireClaim("scope", "uaa.resource")));            
+
+            if (Configuration.GetValue("DISABLE_AUTH", false))
+            {
+                services.DisableClaimsVerification();
+            }                                
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,10 +66,11 @@ namespace AllocationsServer
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            app.UseAuthentication();
             app.UseMvc();
             app.UseDiscoveryClient();
-             app.UseHystrixMetricsStream();
-          app.UseHystrixRequestContext();
+            app.UseHystrixMetricsStream();
+            app.UseHystrixRequestContext();
         }
     }
 }

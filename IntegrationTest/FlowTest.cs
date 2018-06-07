@@ -25,12 +25,14 @@ namespace IntegrationTest
                 .AppName("RegistrationServer")
                 .Port(8883)
                 .Database("tracker_registration_test")
+                .SetEnvironmentVariable("DISABLE_AUTH", "true")
                 .Build();
 
             _allocationsServer = TestAppServerBuilder()
                 .AppName("AllocationsServer")
                 .Port(8881)
                 .Database("tracker_allocations_test")
+                .SetEnvironmentVariable("DISABLE_AUTH", "true")
                 .SetEnvironmentVariable("REGISTRATION_SERVER_ENDPOINT", _registrationServer.Url())
                 .Build();
 
@@ -38,6 +40,7 @@ namespace IntegrationTest
                 .AppName("BacklogServer")
                 .Port(8882)
                 .Database("tracker_backlog_test")
+                .SetEnvironmentVariable("DISABLE_AUTH", "true")
                 .SetEnvironmentVariable("REGISTRATION_SERVER_ENDPOINT", _registrationServer.Url())
                 .Build();
 
@@ -45,6 +48,7 @@ namespace IntegrationTest
                 .AppName("TimesheetsServer")
                 .Port(8884)
                 .Database("tracker_timesheets_test")
+                .SetEnvironmentVariable("DISABLE_AUTH", "true")
                 .SetEnvironmentVariable("REGISTRATION_SERVER_ENDPOINT", _registrationServer.Url())
                 .Build();
         }

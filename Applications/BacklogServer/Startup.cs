@@ -10,6 +10,11 @@ using Steeltoe.CloudFoundry.Connector.MySql.EFCore;
 using Pivotal.Discovery.Client;
 using Steeltoe.Common.Discovery;
 using Steeltoe.CircuitBreaker.Hystrix;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Steeltoe.Security.Authentication.CloudFoundry;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using AuthDisabler;
 
 namespace BacklogServer
 {
@@ -30,7 +35,7 @@ namespace BacklogServer
 
             services.AddDbContext<StoryContext>(options => options.UseMySql(Configuration));
             services.AddScoped<IStoryDataGateway, StoryDataGateway>();
-
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IProjectClient>(sp =>
             {
                 var handler = new DiscoveryHttpClientHandler(sp.GetService<IDiscoveryClient>());
@@ -40,10 +45,19 @@ namespace BacklogServer
                 };
 
                 var logger = sp.GetService<ILogger<ProjectClient>>();
-                return new ProjectClient(httpClient, logger);
+                var contextAccessor = sp.GetService<IHttpContextAccessor>();
+                 
+                return new ProjectClient(httpClient, logger, () => contextAccessor.HttpContext.GetTokenAsync("access_token"));
             });
             services.AddDiscoveryClient(Configuration);
             services.AddHystrixMetricsStream(Configuration);
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddCloudFoundryJwtBearer(Configuration);            
+            services.AddAuthorization(options => options.AddPolicy("pal-tracker", policy => policy.RequireClaim("scope", "uaa.resource")));
+
+            if (Configuration.GetValue("DISABLE_AUTH", false))
+            {
+                services.DisableClaimsVerification();
+            }            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,6 +66,7 @@ namespace BacklogServer
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            app.UseAuthentication();
             app.UseMvc();
             app.UseDiscoveryClient();
             app.UseHystrixMetricsStream();
