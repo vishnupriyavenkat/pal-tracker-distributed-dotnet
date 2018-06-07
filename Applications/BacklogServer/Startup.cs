@@ -37,9 +37,6 @@ namespace BacklogServer
                 {
                     BaseAddress = new Uri(Configuration.GetValue<string>("REGISTRATION_SERVER_ENDPOINT"))
                 };
-                {
-                    BaseAddress = new Uri(Configuration.GetValue<string>("REGISTRATION_SERVER_ENDPOINT"))
-                };
 
                 return new ProjectClient(httpClient);
             });
